@@ -1,0 +1,19 @@
+[package]
+name = "{{project-name}}"
+version = "0.1.0"
+edition = "2021"
+description = "An IntentDiff parser plugin for {{language}}"
+license = "MIT"
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+# SDK — update the tag to the version you are targeting
+intentdiff-plugin-sdk = { git = "https://github.com/buchochelliq-labs/intentdiff-plugin-sdk", tag = "v0.1.0" }
+serde_json = "1"
+wit-bindgen = { version = "0.57", default-features = false, features = ["std", "macros"] }
+
+# Build the Wasm component
+[package.metadata.component]
+package = "intentdiff:plugin"

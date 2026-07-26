@@ -1,0 +1,14 @@
+[package]
+name = "sql-parser-lib"
+version = "0.1.0"
+edition = "2021"
+description = "Shared SQL parsing utilities for IntentDiff SQL-based plugins"
+license = "MIT"
+
+[lib]
+name = "sql_parser_lib"
+# Plain rlib — not a cdylib; linked into parser plugins, never loaded standalone.
+
+[dependencies]
+intentdiff-plugin-sdk = { path = "../sdk" }
+serde_json = "1"

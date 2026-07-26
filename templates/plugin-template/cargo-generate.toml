@@ -1,0 +1,12 @@
+name = "plugin-template"
+description = "IntentDiff parser plugin template"
+
+[placeholders.project-name]
+type = "string"
+prompt = "Plugin crate name (e.g. my-lang-parser)"
+regex = "^[a-z][a-z0-9-]+$"
+
+[placeholders.language]
+type = "string"
+prompt = "Language ID (lowercase, e.g. python, rust, go)"
+regex = "^[a-z][a-z0-9_-]*$"

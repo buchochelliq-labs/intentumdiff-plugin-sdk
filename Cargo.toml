@@ -1,0 +1,44 @@
+# intentdiff-plugin-sdk — the IntentDiff plugin contract + SDK workspace.
+# Root of the plugin dependency DAG: parser/renderer plugin repos depend on this SDK
+# and consume the canonical WIT contract (wit/plugin.wit) it masters.
+[workspace]
+members = [
+    "crates/sdk",
+    "crates/sql-parser-lib",
+]
+resolver = "2"
+
+# Prevent accidental `cargo publish` until crates are ready for release
+[workspace.package]
+publish = false
+
+# Plugins target WASI p2 (Component Model); these profiles mirror the settings the
+# monorepo certified plugin builds against.
+[profile.release]
+opt-level = "z"
+lto = true
+codegen-units = 1
+strip = true
+panic = "abort"
+
+# Build scripts run on the host; compile them simply so Windows AppControl doesn't block them
+[profile.release.build-override]
+opt-level = 0
+codegen-units = 16
+debug = false
+
+[profile.release-wasm]
+inherits = "release"
+opt-level = "z"
+
+# Patch out or stabilize build scripts from crates where Windows AppControl blocks
+# cargo-compiled build script binaries (vendored from the monorepo's crates/patches —
+# only the entries the SDK dependency graph reaches; grammar patches live with the
+# parser repos).
+[patch.crates-io]
+quote = { path = "crates/patches/quote" }
+zmij = { path = "crates/patches/zmij" }
+serde_core = { path = "crates/patches/serde_core" }
+serde_json = { path = "crates/patches/serde_json" }
+wit-bindgen-rust-macro = { path = "crates/patches/wit-bindgen-rust-macro" }
+tree-sitter = { path = "crates/patches/tree-sitter" }
