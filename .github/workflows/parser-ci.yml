@@ -23,6 +23,11 @@ on:
         default: "1.93.0"
         type: string
 
+    secrets:
+      SPLIT_REPO_TOKEN:
+        description: "Org-scoped token so the private SDK git dep can be fetched"
+        required: false
+
 permissions:
   contents: read
 
@@ -48,13 +53,28 @@ jobs:
           key: parser-ci
           workspaces: ${{ inputs.crate-dir }}
 
+      - name: Authenticate cross-repo git deps
+        env:
+          SPLIT_REPO_TOKEN: ${{ secrets.SPLIT_REPO_TOKEN }}
+        run: |
+          if [ -n "$SPLIT_REPO_TOKEN" ]; then
+            git config --global url."https://x-access-token:${SPLIT_REPO_TOKEN}@github.com/".insteadOf "https://github.com/"
+            echo "cross-repo git auth configured"
+          else
+            echo "::warning::SPLIT_REPO_TOKEN not set - the private SDK dependency will fail to fetch"
+          fi
+
       - name: Build the Wasm component
         working-directory: ${{ inputs.crate-dir }}
         run: cargo build --release --target wasm32-wasip2
+        env:
+          CARGO_NET_GIT_FETCH_WITH_CLI: "true"
 
       - name: Host-side tests (incl. Tier-B parity/fuzz where present)
         working-directory: ${{ inputs.crate-dir }}
         run: cargo test
+        env:
+          CARGO_NET_GIT_FETCH_WITH_CLI: "true"
 
       - name: Upload the built component
         uses: actions/upload-artifact@b4b15b8c7c6ac21ea08fcf65892d2ee8f75cf882 # v4.4.3
