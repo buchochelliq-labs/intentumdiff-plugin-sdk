@@ -20,7 +20,7 @@ on:
       rust-toolchain:
         description: "Rust toolchain to pin"
         required: false
-        default: "1.93.0"
+        default: "1.95.0"
         type: string
 
     secrets:
