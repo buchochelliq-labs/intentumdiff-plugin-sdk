@@ -77,7 +77,7 @@ jobs:
           CARGO_NET_GIT_FETCH_WITH_CLI: "true"
 
       - name: Upload the built component
-        uses: actions/upload-artifact@b4b15b8c7c6ac21ea08fcf65892d2ee8f75cf882 # v4.4.3
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: parser-wasm
           path: ${{ inputs.crate-dir }}/target/wasm32-wasip2/release/*.wasm
