@@ -1,4 +1,4 @@
-# Agent instructions — intentdiff-plugin-sdk
+# Agent instructions — intentumdiff-plugin-sdk
 
 The plugin **contract + SDK**: root of the plugin dependency DAG.
 

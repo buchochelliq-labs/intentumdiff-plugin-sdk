@@ -1,16 +1,16 @@
-# intentdiff-plugin-sdk
+# intentumdiff-plugin-sdk
 
-[![CI](https://github.com/buchochelliq-labs/intentdiff-plugin-sdk/actions/workflows/ci.yml/badge.svg)](https://github.com/buchochelliq-labs/intentdiff-plugin-sdk/actions/workflows/ci.yml)
+[![CI](https://github.com/buchochelliq-labs/intentumdiff-plugin-sdk/actions/workflows/ci.yml/badge.svg)](https://github.com/buchochelliq-labs/intentumdiff-plugin-sdk/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Rust 1.95](https://img.shields.io/badge/rust-1.95-orange.svg)](https://www.rust-lang.org/)
 
-The **IntentDiff plugin contract and SDK** — the root of the plugin dependency graph.
-Everything needed to write an IntentDiff parser or renderer plugin in Rust lives here:
+The **IntentumDiff plugin contract and SDK** — the root of the plugin dependency graph.
+Everything needed to write an IntentumDiff parser or renderer plugin in Rust lives here:
 
-- **`wit/plugin.wit`** — the canonical WIT contract (`intentdiff:plugin`). Every plugin
+- **`wit/plugin.wit`** — the canonical WIT contract (`intentumdiff:plugin`). Every plugin
   implements this interface; every host loads plugins through it. This repo masters the
   contract — plugin repos consume it from here.
-- **`crates/sdk`** (`intentdiff-plugin-sdk`) — the SDK library: `SemanticNode` /
+- **`crates/sdk`** (`intentumdiff-plugin-sdk`) — the SDK library: `SemanticNode` /
   `SemanticNodeBuilder` / `SemanticTree` tree types, structural hashing, CST types, plugin
   metadata parsing, the shared tree-sitter → CST conversion (`ts-convert` feature), and the
   `plugin_compliance_tests!` macro (`testing` feature).
@@ -20,14 +20,14 @@ Everything needed to write an IntentDiff parser or renderer plugin in Rust lives
 - **`crates/patches/`** — vendored dependency patches (build-script stabilization) that the
   SDK dependency graph needs; wired via `[patch.crates-io]` in the workspace manifest.
 - **`.claude/skills/`** — the **master** copies of the plugin development skills
-  (`intentdiff-plugin-repo`, `intentdiff-parsers`). Parser repos receive stamped copies;
+  (`intentumdiff-plugin-repo`, `intentumdiff-parsers`). Parser repos receive stamped copies;
   edits belong here and are fanned out — never edit a parser repo's copy.
 
 ## Writing a plugin
 
 ```toml
 [dependencies]
-intentdiff-plugin-sdk = { git = "https://github.com/buchochelliq-labs/intentdiff-plugin-sdk", tag = "v0.1.0" }
+intentumdiff-plugin-sdk = { git = "https://github.com/buchochelliq-labs/intentumdiff-plugin-sdk", tag = "v0.1.0" }
 ```
 
 Implement the `parser` (or `renderer`) interface from `wit/plugin.wit`, emit a deterministic
@@ -38,7 +38,7 @@ cargo build --release --target wasm32-wasip2
 ```
 
 Start from `templates/plugin-template/` with `cargo generate`, and read
-`.claude/skills/intentdiff-plugin-repo` for the plugin-repo rules (determinism, spans,
+`.claude/skills/intentumdiff-plugin-repo` for the plugin-repo rules (determinism, spans,
 structural hashes, compliance tests).
 
 ## Building this repo
@@ -64,7 +64,7 @@ templates/plugin-template/  cargo-generate template for a new parser plugin
 
 ## Provenance
 
-Migrated files-only (no history) from the IntentDiff monorepo
-(`buchochelliq-labs/intentdiff`), which remains the archive of record.
+Migrated files-only (no history) from the IntentumDiff monorepo
+(`buchochelliq-labs/intentumdiff`), which remains the archive of record.
 
 License: MIT.

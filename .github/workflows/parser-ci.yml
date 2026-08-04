@@ -1,9 +1,9 @@
-# Reusable CI for intentdiff-<lang>-parser repos (owned by the SDK — one fix here,
+# Reusable CI for intentumdiff-<lang>-parser repos (owned by the SDK — one fix here,
 # not 69). Each parser repo's workflow is a thin caller:
 #
 #   jobs:
 #     ci:
-#       uses: buchochelliq-labs/intentdiff-plugin-sdk/.github/workflows/parser-ci.yml@main
+#       uses: buchochelliq-labs/intentumdiff-plugin-sdk/.github/workflows/parser-ci.yml@main
 #
 # v1 scope: build the wasm32-wasip2 component + run the crate's host-side tests
 # (the Tier-B parity/fuzz suites travel inside each parser repo's own tests).

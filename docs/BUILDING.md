@@ -1,4 +1,4 @@
-# Building intentdiff-plugin-sdk
+# Building intentumdiff-plugin-sdk
 
 Toolchain: **Rust 1.93.0**; target `wasm32-wasip2` for plugin-target checks.
 
@@ -11,5 +11,5 @@ cargo check --workspace --features wasm --target wasm32-wasip2    # plugin-targe
 Tag releases (`vX.Y.Z`) — plugins depend on the SDK by git tag:
 
 ```toml
-intentdiff-plugin-sdk = { git = "https://github.com/buchochelliq-labs/intentdiff-plugin-sdk", tag = "v0.1.0" }
+intentumdiff-plugin-sdk = { git = "https://github.com/buchochelliq-labs/intentumdiff-plugin-sdk", tag = "v0.1.0" }
 ```

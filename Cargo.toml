@@ -1,4 +1,4 @@
-# intentdiff-plugin-sdk — the IntentDiff plugin contract + SDK workspace.
+# intentumdiff-plugin-sdk — the IntentumDiff plugin contract + SDK workspace.
 # Root of the plugin dependency DAG: parser/renderer plugin repos depend on this SDK
 # and consume the canonical WIT contract (wit/plugin.wit) it masters.
 [workspace]

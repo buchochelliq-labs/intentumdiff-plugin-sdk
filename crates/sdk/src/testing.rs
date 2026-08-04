@@ -1,4 +1,4 @@
-//! Test utilities for IntentDiff parser and renderer plugin authors.
+//! Test utilities for IntentumDiff parser and renderer plugin authors.
 //!
 //! This module provides assertion helpers and the [`plugin_compliance_tests!`]
 //! macro that generates a standard compliance test suite for any parser plugin.
@@ -8,7 +8,7 @@
 //! In your plugin crate's `Cargo.toml`:
 //! ```toml
 //! [dev-dependencies]
-//! intentdiff-plugin-sdk = { path = "../../crates/sdk", features = ["testing"] }
+//! intentumdiff-plugin-sdk = { path = "../../crates/sdk", features = ["testing"] }
 //! ```
 //!
 //! In `src/lib.rs`, extract your logic into testable functions:
@@ -23,7 +23,7 @@
 //! mod tests {
 //!     use super::*;
 //!
-//!     intentdiff_plugin_sdk::plugin_compliance_tests! {
+//!     intentumdiff_plugin_sdk::plugin_compliance_tests! {
 //!         process: parse_mylang,
 //!         detect_fn: detect_language_impl,
 //!         detect_cases: [
@@ -216,13 +216,13 @@ macro_rules! plugin_compliance_tests {
         #[test]
         fn compliance_process_empty_valid_json() {
             let out = $process_fn("");
-            intentdiff_plugin_sdk::testing::assert_valid_json(&out, "process(empty)");
+            intentumdiff_plugin_sdk::testing::assert_valid_json(&out, "process(empty)");
         }
 
         #[test]
         fn compliance_process_whitespace_valid_json() {
             let out = $process_fn("   \n\t  ");
-            intentdiff_plugin_sdk::testing::assert_valid_json(&out, "process(whitespace)");
+            intentumdiff_plugin_sdk::testing::assert_valid_json(&out, "process(whitespace)");
         }
 
         #[test]

@@ -1,5 +1,5 @@
 name = "plugin-template"
-description = "IntentDiff parser plugin template"
+description = "IntentumDiff parser plugin template"
 
 [placeholders.project-name]
 type = "string"

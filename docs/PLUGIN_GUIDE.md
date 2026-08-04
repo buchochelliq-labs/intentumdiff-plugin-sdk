@@ -1,4 +1,4 @@
-# Writing an IntentDiff parser plugin
+# Writing an IntentumDiff parser plugin
 
 A parser plugin is a **Wasm component** (WASI p2, Component Model) implementing the `parser`
 interface of `wit/plugin.wit`: it receives raw source and returns a deterministic
@@ -40,12 +40,12 @@ cargo test
 ```
 
 CI: call the SDK's reusable workflow —
-`uses: buchochelliq-labs/intentdiff-plugin-sdk/.github/workflows/parser-ci.yml@main`.
+`uses: buchochelliq-labs/intentumdiff-plugin-sdk/.github/workflows/parser-ci.yml@main`.
 
 ## 5. Register
 
 Official distribution goes through
-[intentdiff-registry](https://github.com/buchochelliq-labs/intentdiff-registry): open a PR
+[intentumdiff-registry](https://github.com/buchochelliq-labs/intentumdiff-registry): open a PR
 adding your entry (git source pinned to a commit SHA, SHA-256 `wasm_checksums` of the built
 component, `abi_target`). The registry's vetting CI validates the entry; installs verify the
 checksums. See its `docs/SUBMITTING.md`.

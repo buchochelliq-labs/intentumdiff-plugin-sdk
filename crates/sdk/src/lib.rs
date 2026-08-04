@@ -1,7 +1,7 @@
-//! IntentDiff Plugin SDK
+//! IntentumDiff Plugin SDK
 //!
 //! Provides the types and helpers needed to implement parser or renderer
-//! plugins for IntentDiff.
+//! plugins for IntentumDiff.
 //!
 //! # Getting started
 //!
@@ -9,7 +9,7 @@
 //!
 //! ```toml
 //! [dependencies]
-//! intentdiff-plugin-sdk = { git = "https://github.com/buchochelliq-labs/intentdiff-plugin-sdk", tag = "v0.1.0" }
+//! intentumdiff-plugin-sdk = { git = "https://github.com/buchochelliq-labs/intentumdiff-plugin-sdk", tag = "v0.1.0" }
 //! ```
 //!
 //! Then implement the `parser` or `renderer` WIT interface.
