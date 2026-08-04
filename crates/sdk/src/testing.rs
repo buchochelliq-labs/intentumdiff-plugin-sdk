@@ -23,7 +23,7 @@
 //! mod tests {
 //!     use super::*;
 //!
-//!     intentdiff_plugin_sdk::plugin_compliance_tests! {
+//!     intentumdiff_plugin_sdk::plugin_compliance_tests! {
 //!         process: parse_mylang,
 //!         detect_fn: detect_language_impl,
 //!         detect_cases: [
@@ -216,13 +216,13 @@ macro_rules! plugin_compliance_tests {
         #[test]
         fn compliance_process_empty_valid_json() {
             let out = $process_fn("");
-            intentdiff_plugin_sdk::testing::assert_valid_json(&out, "process(empty)");
+            intentumdiff_plugin_sdk::testing::assert_valid_json(&out, "process(empty)");
         }
 
         #[test]
         fn compliance_process_whitespace_valid_json() {
             let out = $process_fn("   \n\t  ");
-            intentdiff_plugin_sdk::testing::assert_valid_json(&out, "process(whitespace)");
+            intentumdiff_plugin_sdk::testing::assert_valid_json(&out, "process(whitespace)");
         }
 
         #[test]
