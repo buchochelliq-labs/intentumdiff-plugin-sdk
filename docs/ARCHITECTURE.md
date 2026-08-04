@@ -2,7 +2,7 @@
 
 The root of the plugin dependency DAG. Three responsibilities:
 
-1. **The contract.** `wit/plugin.wit` (`intentumdiff:plugin`) is mastered here; every plugin
+1. **The contract.** `wit/plugin.wit` (`intentdiff:plugin`) is mastered here; every plugin
    implements it and every host loads through it. Consumers commit their crate-local copy;
    contract changes are versioned here (the host gates on `abi_target` compatibility).
 2. **The SDK library** (`crates/sdk`): `SemanticNode`/`SemanticNodeBuilder`/`SemanticTree`,

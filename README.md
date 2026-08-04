@@ -7,7 +7,7 @@
 The **IntentumDiff plugin contract and SDK** — the root of the plugin dependency graph.
 Everything needed to write an IntentumDiff parser or renderer plugin in Rust lives here:
 
-- **`wit/plugin.wit`** — the canonical WIT contract (`intentumdiff:plugin`). Every plugin
+- **`wit/plugin.wit`** — the canonical WIT contract (`intentdiff:plugin`). Every plugin
   implements this interface; every host loads plugins through it. This repo masters the
   contract — plugin repos consume it from here.
 - **`crates/sdk`** (`intentumdiff-plugin-sdk`) — the SDK library: `SemanticNode` /

@@ -4,7 +4,7 @@
 //! (which preprocesses Jinja2 then runs the same SQL logic) can share code
 //! without duplication.
 
-use intentumdiff_plugin_sdk::{
+use intentdiff_plugin_sdk::{
     cst::CstNode,
     hash::structural_hash_with_memo,
     tree::{SemanticNode, SemanticNodeBuilder},
