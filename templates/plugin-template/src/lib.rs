@@ -12,7 +12,7 @@
 //!      [project.entry-points."intentumdiff.parsers"]
 //!      {{language}} = "your_package:entry_point"
 
-use intentdiff_plugin_sdk::tree::{SemanticNode, SemanticNodeBuilder};
+use intentumdiff_plugin_sdk::tree::{SemanticNode, SemanticNodeBuilder};
 
 const GRAMMAR_ID: &str = "{{language}}";
 const LANGUAGE_IDS: &[&str] = &["{{language}}"];
