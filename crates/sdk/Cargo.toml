@@ -1,6 +1,6 @@
 [package]
 name = "intentumdiff-plugin-sdk"
-version = "0.2.0"
+version = "0.0.2-beta.1"
 edition = "2021"
 description = "SDK for writing IntentumDiff Wasm plugins in Rust"
 license = "MIT"
