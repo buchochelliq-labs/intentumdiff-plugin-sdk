@@ -1,5 +1,12 @@
 # Changelog
 
+## v0.0.2-beta.1 — 2026-08-08
+
+Versioning unified across the IntentumDiff components: every component ships
+`0.0.2-beta.1` for this release, spelled per its ecosystem (`0.0.2b1` for the Python
+wheel). Previously released as v0.2.0 in this changelog; the tag cut is
+`v0.0.2-beta.1`.
+
 ## v0.2.0 — 2026-08-04
 
 **Rebrand: IntentDiff is now IntentumDiff.** The crate is renamed
@@ -25,7 +32,7 @@ has to outlive the brand.
 
 ### Upgrading
 
-    intentumdiff-plugin-sdk = { git = "...", tag = "v0.2.0" }
+    intentumdiff-plugin-sdk = { git = "...", tag = "v0.0.2-beta.1" }
 
 No source changes are required: only the package name moved.
 
