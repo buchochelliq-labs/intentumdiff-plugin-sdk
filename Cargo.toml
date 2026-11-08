@@ -5,6 +5,8 @@
 members = [
     "crates/sdk",
     "crates/sql-parser-lib",
+    "tests/authoring-standard",
+    "tests/authoring-renamed",
 ]
 resolver = "2"
 

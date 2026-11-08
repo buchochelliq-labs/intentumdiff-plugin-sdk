@@ -1,0 +1,9 @@
+[package]
+name = "sdk-authoring-standard"
+version = "0.0.0"
+edition = "2021"
+publish = false
+
+[dependencies]
+intentumdiff-plugin-sdk = { path = "../../crates/sdk", features = ["testing"] }
+serde_json = "1"

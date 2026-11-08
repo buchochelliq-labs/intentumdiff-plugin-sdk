@@ -1,0 +1,8 @@
+[package]
+name = "sdk-authoring-renamed"
+version = "0.0.0"
+edition = "2021"
+publish = false
+
+[dev-dependencies]
+parser_sdk = { package = "intentumdiff-plugin-sdk", path = "../../crates/sdk", features = ["testing"] }
