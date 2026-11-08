@@ -32,7 +32,8 @@ pub fn cst_literal_kind(kind: &str) -> bool {
 }
 
 /// The shared tree-sitter → CstNode converter: named children only, 0-based positions,
-/// text captured for leaves and literal-ish kinds (4096-char cap).
+/// complete source text captured for leaves and literal-ish kinds. This text is hash
+/// input, so shortening it would hide edits past the truncation boundary.
 pub fn node_to_cst(node: tree_sitter::Node<'_>, source: &[u8]) -> CstNode {
     let children: Vec<CstNode> = (0..node.named_child_count())
         .filter_map(|i| node.named_child(i))
@@ -41,13 +42,7 @@ pub fn node_to_cst(node: tree_sitter::Node<'_>, source: &[u8]) -> CstNode {
 
     let keep_text = children.is_empty() || cst_literal_kind(node.kind());
     let text = if keep_text {
-        Some(
-            node.utf8_text(source)
-                .unwrap_or("")
-                .chars()
-                .take(4096)
-                .collect(),
-        )
+        Some(node.utf8_text(source).unwrap_or("").to_string())
     } else {
         None
     };
@@ -317,7 +312,75 @@ pub fn literal_label(node: &CstNode) -> Option<String> {
 
 #[cfg(test)]
 mod tests {
-    use super::cst_literal_kind;
+    use super::{cst_literal_kind, node_to_cst};
+    use crate::{cst::CstNode, hash::structural_hash};
+
+    fn python_cst(source: &str) -> CstNode {
+        let mut parser = tree_sitter::Parser::new();
+        parser
+            .set_language(&tree_sitter_python::LANGUAGE.into())
+            .unwrap();
+        let tree = parser.parse(source, None).unwrap();
+        assert!(!tree.root_node().has_error());
+        node_to_cst(tree.root_node(), source.as_bytes())
+    }
+
+    #[test]
+    fn node_to_cst_hashes_literal_suffixes_beyond_4096_characters() {
+        for prefix_len in [4095, 4096, 4097, 4200, 16384] {
+            let prefix = "a".repeat(prefix_len);
+            let old = python_cst(&format!("value = \"{prefix}x\"\n"));
+            let new = python_cst(&format!("value = \"{prefix}y\"\n"));
+            assert_ne!(
+                structural_hash(&old),
+                structural_hash(&new),
+                "literal suffix after {prefix_len} characters must affect its subtree hash"
+            );
+        }
+    }
+
+    #[test]
+    fn node_to_cst_retains_complete_unicode_literal_text_and_byte_spans() {
+        let payload = format!("{}x", "é🙂".repeat(2100));
+        let literal = format!("\"{payload}\"");
+        let source = format!("value = {literal}\n");
+        let cst = python_cst(&source);
+        let string = cst.walk().find(|node| node.node_type == "string").unwrap();
+        let content = cst
+            .walk()
+            .find(|node| node.node_type == "string_content")
+            .unwrap();
+
+        assert!(
+            string.text.as_deref() == Some(literal.as_str()),
+            "complete literal text must survive conversion"
+        );
+        assert!(
+            content.text.as_deref() == Some(payload.as_str()),
+            "complete leaf payload must survive conversion"
+        );
+        assert_eq!(content.start_line, 0);
+        assert_eq!(content.end_line, 0);
+        assert_eq!(content.start_col, 9);
+        assert_eq!(content.end_col, 9 + payload.len() as u32);
+        let new = python_cst(&source.replace('x', "y"));
+        assert_ne!(structural_hash(&cst), structural_hash(&new));
+    }
+
+    #[test]
+    fn complete_long_literal_conversion_is_deterministic_and_spacing_preserving() {
+        let payload = "a".repeat(4200);
+        let source = format!("value = \"{payload}\"\n");
+        let first = python_cst(&source);
+        let repeated = python_cst(&source);
+        let spaced = python_cst(&format!("value=\"{payload}\"\n"));
+
+        assert_eq!(
+            serde_json::to_value(&first).unwrap(),
+            serde_json::to_value(&repeated).unwrap()
+        );
+        assert_eq!(structural_hash(&first), structural_hash(&spaced));
+    }
 
     #[test]
     fn literal_kinds_cover_the_burned_families() {

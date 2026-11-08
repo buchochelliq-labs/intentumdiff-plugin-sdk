@@ -16,6 +16,9 @@ sha2 = "0.10"
 hex = "0.4"
 wit-bindgen = { version = "0.57", default-features = false, features = ["std", "macros"] }
 
+[dev-dependencies]
+tree-sitter-python = "0.25"
+
 [features]
 # Enable when compiling for wasm32-wasip2 (the default for plugins)
 wasm = []
