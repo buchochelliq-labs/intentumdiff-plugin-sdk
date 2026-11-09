@@ -114,9 +114,71 @@ fn exact_numeric_atoms_never_round_through_f64() {
         )
         .unwrap();
         assert_ne!(a.structural_hash, b.structural_hash, "{left} vs {right}");
-        assert_eq!(a.children[0].label, left);
-        assert_eq!(b.children[0].label, right);
+        assert_ne!(a.children[0].label, b.children[0].label);
+        assert_eq!(a.children[0].position.end_col as usize, left.len());
+        assert_eq!(b.children[0].position.end_col as usize, right.len());
     }
+}
+
+#[test]
+fn equivalent_exact_decimal_spellings_share_semantics_and_keep_source_anchors() {
+    for (left, right) in [
+        ("1.0", "1e0"),
+        ("1000", "1e3"),
+        ("0.0100", "1e-2"),
+        ("-12.50", "-125e-1"),
+        ("0", "-0.000e99"),
+        ("1e1000000", "10e999999"),
+        ("0e1000000", "-0.000e1000000"),
+        ("0", "-0e-9223372036854775808"),
+    ] {
+        let a =
+            configuration_node("id", "value", &number(left).position, &number(left), left).unwrap();
+        let b = configuration_node(
+            "id",
+            "value",
+            &number(right).position,
+            &number(right),
+            right,
+        )
+        .unwrap();
+        assert_eq!(a.structural_hash, b.structural_hash, "{left} vs {right}");
+        assert_eq!(a.children[0].label, b.children[0].label);
+        assert_eq!(a.children[0].position.end_col as usize, left.len());
+        assert_eq!(b.children[0].position.end_col as usize, right.len());
+    }
+}
+
+#[test]
+fn decimal_proof_preserves_sign_precision_type_and_unknown_syntax() {
+    let hash = |text: &str| {
+        configuration_node("id", "value", &number(text).position, &number(text), text)
+            .unwrap()
+            .structural_hash
+    };
+    for (left, right) in [
+        ("1", "-1"),
+        ("1.00000000000000001", "1.00000000000000002"),
+        ("18446744073709551616", "18446744073709551617"),
+        ("1e+2", "1e-2"),
+        ("01.0", "1.0"),
+        ("1e1000001", "10e1000000"),
+        ("1e9223372036854775808", "1e9223372036854775809"),
+    ] {
+        assert_ne!(hash(left), hash(right), "{left} vs {right}");
+    }
+
+    let numeric = configuration_node(
+        "id",
+        "value",
+        &number("1.0").position,
+        &number("1.0"),
+        "1.0",
+    )
+    .unwrap();
+    let textual = value(ConfigKind::String("1".into()), "1");
+    let text_node = configuration_node("id", "value", &textual.position, &textual, "1").unwrap();
+    assert_ne!(numeric.structural_hash, text_node.structural_hash);
 }
 
 #[test]

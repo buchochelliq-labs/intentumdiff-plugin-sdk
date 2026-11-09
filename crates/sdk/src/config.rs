@@ -31,7 +31,8 @@ pub enum ConfigKind {
     Null,
     Boolean(bool),
     /// The original numeric token, never a formatted or rounded `f64` value.
-    /// Numeric spelling differences conservatively remain distinguishable.
+    /// Supported JSON decimal spellings use one exact canonical label/hash;
+    /// source positions continue to anchor the original token.
     Number(String),
     /// Decoded runtime string value; quotes/escape spelling are not payload.
     String(String),
@@ -176,22 +177,23 @@ impl Projector<'_, '_> {
         self.position(&value.position)?;
         let id = self.id()?;
         let mut children = Vec::new();
-        let (kind, label) = match &value.kind {
-            ConfigKind::Null => ("null", "null"),
-            ConfigKind::Boolean(value) => ("boolean", if *value { "true" } else { "false" }),
+        let (kind, source_label, canonical_number_label) = match &value.kind {
+            ConfigKind::Null => ("null", "null", None),
+            ConfigKind::Boolean(value) => ("boolean", if *value { "true" } else { "false" }, None),
             ConfigKind::Number(value) => {
                 if value.is_empty() {
                     return Err(ConfigProjectionError::EmptyNumber);
                 }
-                ("number", value.as_str())
+                let canonical = canonical_decimal(value);
+                ("number", value.as_str(), canonical)
             }
-            ConfigKind::String(value) => ("string", value.as_str()),
-            ConfigKind::Opaque(value) => ("value", value.as_str()),
+            ConfigKind::String(value) => ("string", value.as_str(), None),
+            ConfigKind::Opaque(value) => ("value", value.as_str(), None),
             ConfigKind::Sequence(values) => {
                 for value in values {
                     children.push(self.value(value, depth + 1)?);
                 }
-                ("array", "")
+                ("array", "", None)
             }
             ConfigKind::Mapping(entries) => {
                 let mut sorted: Vec<_> = entries.iter().collect();
@@ -210,11 +212,86 @@ impl Projector<'_, '_> {
                         vec![self.value(&entry.value, depth + 1)?],
                     ));
                 }
-                ("object", "")
+                ("object", "", None)
             }
         };
+        let label = canonical_number_label.as_deref().unwrap_or(source_label);
         Ok(build(id, kind, label, &value.position, children))
     }
+}
+
+/// Canonicalize JSON numbers matching
+/// `-?(0|[1-9][0-9]*)(\.[0-9]+)?([eE][+-]?[0-9]+)?` without converting through
+/// a binary float or expanding powers of ten. Nonzero values are canonicalized
+/// only when both the explicit and effective base-10 exponents are within
+/// ±1,000,000. Zero is canonical regardless of exponent when that exponent
+/// parses as i64. Unsupported or out-of-domain tokens keep their exact source
+/// spelling as their hash label.
+fn canonical_decimal(source: &str) -> Option<String> {
+    let (negative, unsigned) = source
+        .strip_prefix('-')
+        .map_or((false, source), |rest| (true, rest));
+    let exponent_at = unsigned.find(['e', 'E']);
+    let (mantissa, exponent_text) = exponent_at.map_or((unsigned, None), |at| {
+        (&unsigned[..at], Some(&unsigned[at + 1..]))
+    });
+    if exponent_text.is_some_and(|rest| rest.contains(['e', 'E'])) {
+        return None;
+    }
+    let explicit_exponent: i64 = match exponent_text {
+        Some(text) => {
+            let digits = match text.as_bytes().first() {
+                Some(b'+' | b'-') => &text[1..],
+                _ => text,
+            };
+            if digits.is_empty() || !digits.bytes().all(|b| b.is_ascii_digit()) {
+                return None;
+            }
+            text.parse().ok()?
+        }
+        None => 0,
+    };
+    let (integer, fraction) = match mantissa.split_once('.') {
+        Some((integer, fraction)) => {
+            if fraction.is_empty() || fraction.contains('.') {
+                return None;
+            }
+            (integer, fraction)
+        }
+        None => (mantissa, ""),
+    };
+    if integer.is_empty()
+        || (integer.len() > 1 && integer.starts_with('0'))
+        || !integer.bytes().all(|b| b.is_ascii_digit())
+        || !fraction.bytes().all(|b| b.is_ascii_digit())
+    {
+        return None;
+    }
+    let mut digits = String::with_capacity(integer.len() + fraction.len());
+    digits.push_str(integer);
+    digits.push_str(fraction);
+    let first_nonzero = digits.bytes().position(|b| b != b'0');
+    let Some(first_nonzero) = first_nonzero else {
+        return Some("0".to_owned());
+    };
+    digits.drain(..first_nonzero);
+    if explicit_exponent.unsigned_abs() > 1_000_000 {
+        return None;
+    }
+    let mut exponent = explicit_exponent.checked_sub(i64::try_from(fraction.len()).ok()?)?;
+    while digits.ends_with('0') {
+        digits.pop();
+        exponent = exponent.checked_add(1)?;
+    }
+    if exponent.unsigned_abs() > 1_000_000 {
+        return None;
+    }
+    Some(format!(
+        "{}{}e{}",
+        if negative { "-" } else { "" },
+        digits,
+        exponent
+    ))
 }
 
 fn build(
