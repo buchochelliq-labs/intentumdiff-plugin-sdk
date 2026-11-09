@@ -14,6 +14,7 @@
 //!
 //! Then implement the `parser` or `renderer` WIT interface.
 
+pub mod config;
 pub mod cst;
 pub mod hash;
 pub mod metadata;
