@@ -28,3 +28,7 @@ testing = []
 # Shared tree-sitter -> CST conversion (issue #47): the single implementation replacing
 # per-crate template copies. Enable in tree-sitter-based parser crates.
 ts-convert = ["dep:tree-sitter"]
+
+[[test]]
+name = "compliance"
+required-features = ["testing"]

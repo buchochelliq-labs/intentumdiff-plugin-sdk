@@ -28,9 +28,30 @@ The template wires the SDK dependency, the WIT binding (`wit_bindgen::generate!`
 ## 3. Ship metadata + compliance tests
 
 - `plugin_metadata.info` declares the grammar id + language ids the host routes to you.
-- Enable `features = ["testing"]` in dev-dependencies and use `plugin_compliance_tests!` —
-  it pins the contract shape (parse your own WIT example, survive hostile inputs with only a
-  tree, an in-band `{error}` envelope, or a typed trap — never a host crash).
+- Enable `features = ["testing"]` in dev-dependencies and use `plugin_compliance_tests!`.
+  JSON validity is not conformance: `process("")` and whitespace must return a real
+  `SemanticTree` (an error envelope, `null`, a scalar or `{}` fails); built-in malformed,
+  Unicode and long-tail inputs must return a valid tree or an in-band
+  `{"error": "<message>"}` envelope; output must be deterministic. Every tree is checked
+  for non-empty unique ids, non-empty `node_type`/`structural_hash`, ordered spans and
+  0-based positions inside the input. Supply the optional sections too — the reusable CI
+  requires them by default:
+
+  ```rust
+  intentumdiff_plugin_sdk::plugin_compliance_tests! {
+      process: parse_mylang,
+      detect_fn: detect_language_impl,
+      detect_cases: [("file.myext", "", "mylang"), ("file.txt", "", "")],
+      grammar_id: "mylang",
+      language_ids: ["mylang"],
+      samples: [EXAMPLE_OLD, EXAMPLE_NEW],          // each must parse to a non-empty tree
+      exported_grammar_id: MyParser::grammar_id,    // the real `Guest` exports
+      exported_language_ids: MyParser::language_ids,
+  }
+  ```
+
+  The individual checks are public (`testing::validate_semantic_tree`, `check_sample`,
+  `check_hostile_inputs`, …) for parser-specific tests.
 
 ## 4. Build + verify
 
@@ -41,6 +62,9 @@ cargo test
 
 CI: call the SDK's reusable workflow —
 `uses: buchochelliq-labs/intentumdiff-plugin-sdk/.github/workflows/parser-ci.yml@main`.
+Besides building and testing, it fails when the built `.wasm` is not a component exporting
+`intentdiff:plugin/parser@1.0.0`, or when any required `compliance_*` test is absent or
+`#[ignore]`d (input `required-compliance-tests` narrows the list as an explicit opt-out).
 
 ## 5. Register
 

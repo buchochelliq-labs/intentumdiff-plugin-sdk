@@ -11,6 +11,9 @@ mod tests {
         detect_cases: [("file.fixture", "", "fixture"), ("file.txt", "", "")],
         grammar_id: GRAMMAR_ID,
         language_ids: ["fixture"],
+        samples: ["statement\nother statement\n"],
+        exported_grammar_id: grammar_id,
+        exported_language_ids: language_ids,
     }
 
     #[test]

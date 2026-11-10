@@ -17,21 +17,19 @@ use intentumdiff_plugin_sdk::tree::{SemanticNode, SemanticNodeBuilder};
 const GRAMMAR_ID: &str = "{{language}}";
 const LANGUAGE_IDS: &[&str] = &["{{language}}"];
 
-fn line_end_col(line: &str) -> u32 {
-    line.chars().count() as u32
-}
-
 fn is_interesting_line(line: &str) -> bool {
     let trimmed = line.trim();
     !trimmed.is_empty() && !trimmed.starts_with("//") && !trimmed.starts_with('#')
 }
 
+// Positions are 0-based lines and byte columns (the SDK compliance suite rejects spans
+// that fall outside the source).
 fn node_for_line(index: usize, line: &str) -> Option<SemanticNode> {
     if !is_interesting_line(line) {
         return None;
     }
 
-    let line_no = (index + 1) as u32;
+    let line_no = index as u32;
     let trimmed = line.trim();
     Some(
         SemanticNodeBuilder::new(
@@ -41,7 +39,7 @@ fn node_for_line(index: usize, line: &str) -> Option<SemanticNode> {
             line_no,
             0,
             line_no,
-            line_end_col(line),
+            line.len() as u32,
             "",
         )
         .build(),
@@ -49,14 +47,16 @@ fn node_for_line(index: usize, line: &str) -> Option<SemanticNode> {
 }
 
 fn parse_source(source: &str) -> SemanticNode {
-    let children: Vec<SemanticNode> = source
-        .lines()
+    let lines: Vec<&str> = source.split('\n').collect();
+    let children: Vec<SemanticNode> = lines
+        .iter()
         .enumerate()
         .filter_map(|(index, line)| node_for_line(index, line))
         .collect();
 
-    let end_line = source.lines().count().max(1) as u32;
-    SemanticNodeBuilder::new("0", "source_file", GRAMMAR_ID, 1, 0, end_line, 0, "")
+    let end_line = (lines.len() - 1) as u32;
+    let end_col = lines.last().map_or(0, |line| line.len()) as u32;
+    SemanticNodeBuilder::new("0", "source_file", GRAMMAR_ID, 0, 0, end_line, end_col, "")
         .children(children)
         .build()
 }
