@@ -27,7 +27,7 @@ Everything needed to write an IntentumDiff parser or renderer plugin in Rust liv
 
 ```toml
 [dependencies]
-intentumdiff-plugin-sdk = { git = "https://github.com/buchochelliq-labs/intentumdiff-plugin-sdk", tag = "v0.1.0" }
+intentumdiff-plugin-sdk = { git = "https://github.com/buchochelliq-labs/intentumdiff-plugin-sdk", tag = "v0.0.3-beta.1" }
 ```
 
 Implement the `parser` (or `renderer`) interface from `wit/plugin.wit`, emit a deterministic

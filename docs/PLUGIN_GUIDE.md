@@ -10,8 +10,12 @@ interface of `wit/plugin.wit`: it receives raw source and returns a deterministi
 cargo generate --path templates/plugin-template
 ```
 
-The template wires the SDK dependency, the WIT binding (`wit_bindgen::generate!` reading
-`wit/plugin.wit` crate-relative), and a line-based placeholder parser to replace.
+The template wires the SDK dependency (pinned to the SDK release tag, plus the `testing`
+dev-dependency), the WIT binding (`wit_bindgen::generate!` reading its own `wit/plugin.wit`,
+a byte-identical, test-enforced copy of the master contract), a `Guest` impl for every
+`parser` export, `plugin_metadata.info`, the full compliance suite, and a line-based
+placeholder parser to replace. A freshly generated crate passes `cargo test` and builds a
+component with `cargo build --release --target wasm32-wasip2`.
 
 ## 2. Emit a correct tree
 

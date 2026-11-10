@@ -11,5 +11,5 @@ cargo check --workspace --features wasm --target wasm32-wasip2    # plugin-targe
 Tag releases (`vX.Y.Z`) — plugins depend on the SDK by git tag:
 
 ```toml
-intentumdiff-plugin-sdk = { git = "https://github.com/buchochelliq-labs/intentumdiff-plugin-sdk", tag = "v0.1.0" }
+intentumdiff-plugin-sdk = { git = "https://github.com/buchochelliq-labs/intentumdiff-plugin-sdk", tag = "v0.0.3-beta.1" }
 ```

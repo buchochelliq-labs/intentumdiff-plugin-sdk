@@ -9,7 +9,7 @@
 //!
 //! ```toml
 //! [dependencies]
-//! intentumdiff-plugin-sdk = { git = "https://github.com/buchochelliq-labs/intentumdiff-plugin-sdk", tag = "v0.1.0" }
+//! intentumdiff-plugin-sdk = { git = "https://github.com/buchochelliq-labs/intentumdiff-plugin-sdk", tag = "v0.0.3-beta.1" }
 //! ```
 //!
 //! Then implement the `parser` or `renderer` WIT interface.

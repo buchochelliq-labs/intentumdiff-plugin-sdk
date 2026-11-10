@@ -15,6 +15,11 @@
   `HashOptions::IDENTITY`) hashes internal literal payload and excludes comments, via
   `structural_hash_with_options` and `convert_semantic{,_classed,_strict}_with`;
   `literal_label_full` drops the 120-char display cap. See PLUGIN_GUIDE "Identity".
+- **Documented setup resolves** (#27): the SDK version is `0.0.3-beta.1` and the template,
+  README, BUILDING and crate docs pin tag `v0.0.3-beta.1` (`v0.1.0` still names the
+  pre-rebrand `intentdiff-plugin-sdk` package). The template is a real parser component
+  (WIT copy, `Guest` exports, metadata, compliance tests) and is compiled and tested in CI
+  via `tests/authoring-standard`.
 
 ## v0.1.0 — 2026-07-26
 

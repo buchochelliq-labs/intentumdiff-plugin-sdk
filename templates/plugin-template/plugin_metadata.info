@@ -1,0 +1,13 @@
+# Bundled parser metadata for the IntentumDiff language-info API.
+
+[plugin]
+author = {{project-name}} authors
+plugin_version = 0.1.0
+last_updated = 2026-01-01
+
+[language.{{language}}]
+language_name = {{language}}
+language_short_name = {{language}}
+monaco_language = plaintext
+default_filename = example.{{language}}
+language_file_extensions = .{{language}}

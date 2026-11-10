@@ -6,14 +6,23 @@ description = "An IntentumDiff parser plugin for {{language}}"
 license = "MIT"
 
 [lib]
+# cdylib only: a host-side cdylib of a component with WIT imports cannot link, and
+# `cargo test` builds its own test harness from the library source anyway.
 crate-type = ["cdylib"]
 
 [dependencies]
-# SDK — update the tag to the version you are targeting
-intentumdiff-plugin-sdk = { git = "https://github.com/buchochelliq-labs/intentumdiff-plugin-sdk", tag = "v0.1.0" }
+# SDK — keep this tag in step with the SDK release you target.
+intentumdiff-plugin-sdk = { git = "https://github.com/buchochelliq-labs/intentumdiff-plugin-sdk", tag = "v0.0.3-beta.1" }
 serde_json = "1"
 wit-bindgen = { version = "0.57", default-features = false, features = ["std", "macros"] }
 
-# Build the Wasm component
-[package.metadata.component]
-package = "intentdiff:plugin"
+[dev-dependencies]
+intentumdiff-plugin-sdk = { git = "https://github.com/buchochelliq-labs/intentumdiff-plugin-sdk", tag = "v0.0.3-beta.1", features = ["testing"] }
+
+# Plugins target WASI p2 (Component Model); mirrors the certified plugin build profile.
+[profile.release]
+opt-level = "z"
+lto = true
+codegen-units = 1
+strip = true
+panic = "abort"
