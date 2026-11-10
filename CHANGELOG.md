@@ -9,6 +9,12 @@
   are public in `testing`. `parser-ci.yml` verifies the built `.wasm` exports
   `intentdiff:plugin/parser@1.0.0` and fails when a required `compliance_*` test is absent
   or ignored. The template emits 0-based positions.
+- **Opt-in identity for CST hashes** (#25), additive — defaults are byte-identical:
+  `ts_convert::node_to_cst_with` + `CstOptions`/`AnonymousTokens` keep anonymous
+  operator/keyword tokens; `hash::HashOptions` (`literal_text`, `is_trivia`;
+  `HashOptions::IDENTITY`) hashes internal literal payload and excludes comments, via
+  `structural_hash_with_options` and `convert_semantic{,_classed,_strict}_with`;
+  `literal_label_full` drops the 120-char display cap. See PLUGIN_GUIDE "Identity".
 
 ## v0.1.0 — 2026-07-26
 

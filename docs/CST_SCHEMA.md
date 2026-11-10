@@ -19,9 +19,12 @@ Every node is a JSON object; leaves carry text, internal nodes carry children:
 |---|---|---|---|
 | `type` | string | all | grammar node type name |
 | `named` | bool | all | named node vs anonymous token |
-| `text` | string | leaves | source text (truncated at 4096 bytes) |
+| `text` | string | leaves + literal containers | complete source text (no truncation); for a kept anonymous token, its grammar token kind |
 | `start_line`/`start_col`/`end_line`/`end_col` | int | all | **0-indexed** positions |
 | `children` | array | internal | child nodes in source order |
+
+The SDK's `ts_convert::node_to_cst` emits named children only; `node_to_cst_with` can also keep
+anonymous operator/keyword tokens as `"named": false` leaves (see the plugin guide).
 
 Full-parse plugins ignore this format entirely — they emit `SemanticNode` trees per the
 [plugin guide](PLUGIN_GUIDE.md).

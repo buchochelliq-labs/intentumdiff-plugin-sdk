@@ -37,7 +37,63 @@ pub fn structural_hash(node: &CstNode) -> String {
 /// Pass the same `memo` through all calls to `convert()` in a single
 /// `process_impl` invocation so that each node's hash is computed only once
 /// (O(n) SHA-256 operations instead of O(n × depth)).
+///
+/// This is the certified legacy algorithm and equals
+/// [`structural_hash_with_options`] with [`HashOptions::default()`]. New parsers should
+/// prefer [`HashOptions::IDENTITY`] (issue #25).
 pub fn structural_hash_with_memo(node: &CstNode, memo: &mut HashMap<usize, String>) -> String {
+    structural_hash_with_options(node, memo, &HashOptions::default())
+}
+
+/// Opt-in identity rules for [`structural_hash_with_options`] (issue #25).
+///
+/// The default (`HashOptions::default()`) reproduces the legacy algorithm byte for byte, so
+/// existing, certified parser outputs do not change until a parser opts in.
+#[derive(Clone, Copy, Default)]
+pub struct HashOptions<'a> {
+    /// Hash the retained `text` of INTERNAL nodes too. The shared converter keeps the full
+    /// source text of literal containers (`string_literal` with an `escape_sequence` child,
+    /// …) but the legacy hash only looks at children, so `"foo\n"` and `"bar\n"` collide.
+    /// With this set, an internal node that carries text hashes as
+    /// `type ":" byte_len ":" text "|" join("|", children)`. Leaves are unchanged.
+    pub literal_text: bool,
+    /// Children whose `node_type` matches are left out of their parent's hash (e.g.
+    /// comments), so a comment-only edit does not change container/root hashes. The node
+    /// passed to the hash function is always hashed itself, even when it is trivia.
+    pub is_trivia: Option<&'a dyn Fn(&str) -> bool>,
+}
+
+impl HashOptions<'static> {
+    /// Recommended identity rules: literal payload is hashed, comments are trivia.
+    pub const IDENTITY: HashOptions<'static> = HashOptions {
+        literal_text: true,
+        is_trivia: Some(&is_comment_kind),
+    };
+}
+
+impl std::fmt::Debug for HashOptions<'_> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("HashOptions")
+            .field("literal_text", &self.literal_text)
+            .field("is_trivia", &self.is_trivia.map(|_| "<fn>"))
+            .finish()
+    }
+}
+
+/// `true` for comment node kinds (`comment`, `line_comment`, `block_comment`,
+/// `doc_comment`, …): any kind containing "comment", ASCII case-insensitively.
+pub fn is_comment_kind(kind: &str) -> bool {
+    kind.to_ascii_lowercase().contains("comment")
+}
+
+/// Structural hash with explicit [`HashOptions`].
+///
+/// The `memo` is keyed by node address, so use a separate memo per options value.
+pub fn structural_hash_with_options(
+    node: &CstNode,
+    memo: &mut HashMap<usize, String>,
+    options: &HashOptions<'_>,
+) -> String {
     let key = node as *const CstNode as usize;
     if let Some(cached) = memo.get(&key) {
         return cached.clone();
@@ -49,9 +105,19 @@ pub fn structural_hash_with_memo(node: &CstNode, memo: &mut HashMap<usize, Strin
         let child_hashes: Vec<String> = node
             .children
             .iter()
-            .map(|c| structural_hash_with_memo(c, memo))
+            .filter(|c| !options.is_trivia.is_some_and(|is_trivia| is_trivia(&c.node_type)))
+            .map(|c| structural_hash_with_options(c, memo, options))
             .collect();
-        format!("{}|{}", node.node_type, child_hashes.join("|"))
+        match node.text.as_deref() {
+            Some(text) if options.literal_text => format!(
+                "{}:{}:{}|{}",
+                node.node_type,
+                text.len(),
+                text,
+                child_hashes.join("|")
+            ),
+            _ => format!("{}|{}", node.node_type, child_hashes.join("|")),
+        }
     };
 
     let mut hasher = Sha256::new();
