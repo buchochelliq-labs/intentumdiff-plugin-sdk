@@ -146,7 +146,7 @@ dependencies = [
 
 [[package]]
 name = "intentumdiff-plugin-sdk"
-version = "0.1.0"
+version = "0.0.3-beta.1"
 dependencies = [
  "hex",
  "serde",
@@ -261,6 +261,7 @@ version = "0.0.0"
 dependencies = [
  "intentumdiff-plugin-sdk",
  "serde_json",
+ "wit-bindgen",
 ]
 
 [[package]]

@@ -1,6 +1,6 @@
 [package]
 name = "intentumdiff-plugin-sdk"
-version = "0.1.0"
+version = "0.0.3-beta.1"
 edition = "2021"
 description = "SDK for writing IntentumDiff Wasm plugins in Rust"
 license = "MIT"
@@ -28,3 +28,7 @@ testing = []
 # Shared tree-sitter -> CST conversion (issue #47): the single implementation replacing
 # per-crate template copies. Enable in tree-sitter-based parser crates.
 ts-convert = ["dep:tree-sitter"]
+
+[[test]]
+name = "compliance"
+required-features = ["testing"]

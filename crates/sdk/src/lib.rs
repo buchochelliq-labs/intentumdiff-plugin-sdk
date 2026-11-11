@@ -9,7 +9,7 @@
 //!
 //! ```toml
 //! [dependencies]
-//! intentumdiff-plugin-sdk = { git = "https://github.com/buchochelliq-labs/intentumdiff-plugin-sdk", tag = "v0.1.0" }
+//! intentumdiff-plugin-sdk = { git = "https://github.com/buchochelliq-labs/intentumdiff-plugin-sdk", tag = "v0.0.3-beta.1" }
 //! ```
 //!
 //! Then implement the `parser` or `renderer` WIT interface.
@@ -23,7 +23,10 @@ pub mod tree;
 pub mod ts_convert;
 
 pub use cst::{CstNode, CstNodeKind};
-pub use hash::{structural_hash, structural_hash_with_memo, COMMON_TRIVIA};
+pub use hash::{
+    structural_hash, structural_hash_with_memo, structural_hash_with_options, HashOptions,
+    COMMON_TRIVIA,
+};
 pub use metadata::{parse_plugin_metadata, LanguageMetadata, PluginMetadata};
 pub use tree::{SemanticNode, SemanticNodeBuilder, SemanticTree};
 

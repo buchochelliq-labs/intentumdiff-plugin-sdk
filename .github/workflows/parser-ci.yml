@@ -5,8 +5,11 @@
 #     ci:
 #       uses: buchochelliq-labs/intentumdiff-plugin-sdk/.github/workflows/parser-ci.yml@main
 #
-# v1 scope: build the wasm32-wasip2 component + run the crate's host-side tests
-# (the Tier-B parity/fuzz suites travel inside each parser repo's own tests).
+# Scope: build the wasm32-wasip2 component, prove the artefact is a Component Model
+# component that exports the `intentdiff:plugin/parser` interface, require the SDK's
+# `plugin_compliance_tests!` suite to be present (not absent, not #[ignore]d), and run the
+# crate's host-side tests (the Tier-B parity/fuzz suites travel inside each parser repo's
+# own tests). A parser that never returns a tree cannot pass (issue #24).
 name: Parser CI (reusable)
 
 on:
@@ -21,6 +24,29 @@ on:
         description: "Rust toolchain to pin"
         required: false
         default: "1.95.0"
+        type: string
+      required-compliance-tests:
+        description: >-
+          Space-separated plugin_compliance_tests! test names that must exist and run.
+          The default is the full SDK >= 0.0.3 suite, including the optional `samples`
+          and `exported_*` sections; narrowing it is an explicit, reviewable opt-out.
+        required: false
+        default: >-
+          compliance_grammar_id_nonempty
+          compliance_language_ids_not_empty
+          compliance_language_ids_contain_grammar_id
+          compliance_process_empty_valid_json
+          compliance_process_whitespace_valid_json
+          compliance_process_hostile_inputs
+          compliance_process_deterministic
+          compliance_detect_language_cases
+          compliance_samples_parse
+          compliance_exported_metadata
+        type: string
+      wit-export:
+        description: "WIT interface the built component must export"
+        required: false
+        default: "intentdiff:plugin/parser@1.0.0"
         type: string
 
     secrets:
@@ -69,6 +95,63 @@ jobs:
         run: cargo build --release --target wasm32-wasip2
         env:
           CARGO_NET_GIT_FETCH_WITH_CLI: "true"
+
+      - name: Install wasm-tools (pinned, checksum-verified)
+        env:
+          WASM_TOOLS_VERSION: "1.244.0"
+          WASM_TOOLS_SHA256: "c3bf279c10e8ca37262773c829efd45423b5efeeb93ba1dc17baf25d9479074c"
+        run: |
+          set -euo pipefail
+          archive="wasm-tools-${WASM_TOOLS_VERSION}-x86_64-linux"
+          curl -sSfL -o "$RUNNER_TEMP/wasm-tools.tgz" \
+            "https://github.com/bytecodealliance/wasm-tools/releases/download/v${WASM_TOOLS_VERSION}/${archive}.tar.gz"
+          echo "${WASM_TOOLS_SHA256}  $RUNNER_TEMP/wasm-tools.tgz" | sha256sum -c -
+          tar -xzf "$RUNNER_TEMP/wasm-tools.tgz" -C "$RUNNER_TEMP"
+          echo "$RUNNER_TEMP/${archive}" >> "$GITHUB_PATH"
+
+      - name: The built artefact is a parser component
+        working-directory: ${{ inputs.crate-dir }}
+        env:
+          WIT_EXPORT: ${{ inputs.wit-export }}
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+          artefacts=(target/wasm32-wasip2/release/*.wasm)
+          if [ "${#artefacts[@]}" -eq 0 ]; then
+            echo "::error::no .wasm artefact was built"; exit 1
+          fi
+          for wasm in "${artefacts[@]}"; do
+            wasm-tools validate "$wasm"
+            wit="$(wasm-tools component wit "$wasm")" || {
+              echo "::error::$wasm is not a Component Model component"; exit 1; }
+            if ! grep -Fq "export ${WIT_EXPORT};" <<<"$wit"; then
+              echo "$wit"
+              echo "::error::$wasm does not export ${WIT_EXPORT}"; exit 1
+            fi
+            echo "$wasm exports ${WIT_EXPORT}"
+          done
+
+      - name: Required SDK compliance tests are present and not ignored
+        working-directory: ${{ inputs.crate-dir }}
+        env:
+          CARGO_NET_GIT_FETCH_WITH_CLI: "true"
+          REQUIRED: ${{ inputs.required-compliance-tests }}
+        run: |
+          set -euo pipefail
+          listed="$(cargo test --all-targets -- --list --format terse 2>/dev/null)"
+          ignored="$(cargo test --all-targets -- --list --format terse --ignored 2>/dev/null)"
+          missing=0
+          for name in $REQUIRED; do
+            pattern="(^|::)${name}: test$"
+            if ! grep -Eq "$pattern" <<<"$listed"; then
+              echo "::error::required compliance test '${name}' is absent (use intentumdiff_plugin_sdk::plugin_compliance_tests!)"
+              missing=1
+            elif grep -Eq "$pattern" <<<"$ignored"; then
+              echo "::error::required compliance test '${name}' is #[ignore]d"
+              missing=1
+            fi
+          done
+          exit "$missing"
 
       - name: Host-side tests (incl. Tier-B parity/fuzz where present)
         working-directory: ${{ inputs.crate-dir }}

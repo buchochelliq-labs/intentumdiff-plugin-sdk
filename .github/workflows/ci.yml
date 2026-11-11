@@ -34,7 +34,9 @@ jobs:
           key: sdk-ci
 
       - name: Host-side unit tests
-        run: cargo test --workspace
+        # --all-features: the `testing` (compliance) and `ts-convert` suites only compile
+        # with their features, so a plain run silently skipped them.
+        run: cargo test --workspace --all-features
 
       - name: Plugin-target check (wasm32-wasip2)
         run: cargo check --workspace --features wasm --target wasm32-wasip2
