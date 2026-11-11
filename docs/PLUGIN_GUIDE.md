@@ -56,7 +56,9 @@ let root = convert_semantic_with(
 
 - `CstOptions { anonymous_tokens }`: `AnonymousTokens::Drop` (default, legacy),
   `OperatorsAndKeywords` (`CstOptions::SEMANTIC_TOKENS`; every anonymous token except
-  `is_delimiter_token` punctuation such as `( ) [ ] { } , ; . : ::` and quote marks),
+  `is_delimiter_token` punctuation such as `( ) [ ] { } , ; . : ::` and quote marks;
+  a `:` directly under a slice node is kept, so `x[1:]` and `x[:1]` differ — see
+  `is_delimiter_token_in`),
   `All`, or `Custom(fn(&str) -> bool)`. Kept tokens are leaves with `named: false`, their
   real span, and `text` = the grammar token kind.
 - `HashOptions { literal_text, is_trivia }`: `literal_text` hashes an internal node's
