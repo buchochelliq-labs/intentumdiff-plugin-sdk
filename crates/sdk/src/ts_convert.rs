@@ -50,8 +50,9 @@ pub enum AnonymousTokens {
     #[default]
     Drop,
     /// Keep anonymous tokens except pure delimiters/punctuation
-    /// ([`is_delimiter_token`]): operators (`+`, `<=`, `:=`, `->`, `?.`) and keywords
-    /// (`async`, `virtual`, `not`, `-eq`) survive; `(`, `,`, `;` … do not.
+    /// ([`is_delimiter_token_in`]): operators (`+`, `<=`, `:=`, `->`, `?.`) and keywords
+    /// (`async`, `virtual`, `not`, `-eq`) survive; `(`, `,`, `;` … do not. The `:` of a
+    /// slice (`x[1:]` vs `x[:1]`) is kept because it locates the operands.
     OperatorsAndKeywords,
     /// Keep every anonymous token, delimiters included.
     All,
@@ -60,12 +61,19 @@ pub enum AnonymousTokens {
 }
 
 impl AnonymousTokens {
-    /// Whether an anonymous child of kind `kind` is kept.
+    /// Whether an anonymous child of kind `kind` is kept, ignoring its parent (so a
+    /// slice `:` reads as a delimiter here; [`node_to_cst_with`] uses [`Self::keeps_in`]).
     pub fn keeps(&self, kind: &str) -> bool {
+        self.keeps_in("", kind)
+    }
+
+    /// Whether an anonymous child of kind `kind` under a node of kind `parent_kind` is
+    /// kept. Only [`AnonymousTokens::OperatorsAndKeywords`] looks at the parent.
+    pub fn keeps_in(&self, parent_kind: &str, kind: &str) -> bool {
         match self {
             AnonymousTokens::Drop => false,
             AnonymousTokens::OperatorsAndKeywords => {
-                !kind.trim().is_empty() && !is_delimiter_token(kind)
+                !kind.trim().is_empty() && !is_delimiter_token_in(parent_kind, kind)
             }
             AnonymousTokens::All => true,
             AnonymousTokens::Custom(keep) => keep(kind),
@@ -114,6 +122,14 @@ pub fn is_delimiter_token(kind: &str) -> bool {
     )
 }
 
+/// [`is_delimiter_token`] in context: the same set, except that a `:` directly under a
+/// slice node (tree-sitter `slice`, `slice_expression`, ...) is meaningful. Its position
+/// relative to the operands is the only thing that tells `x[1:]` from `x[:1]` once the
+/// operands' text is not hashed, so it is not dropped there (issue #33).
+pub fn is_delimiter_token_in(parent_kind: &str, kind: &str) -> bool {
+    is_delimiter_token(kind) && !(kind == ":" && parent_kind.contains("slice"))
+}
+
 /// [`node_to_cst`] with explicit [`CstOptions`]. A kept anonymous token becomes a leaf
 /// with `named: false`, its real span, and `text` = its grammar token kind (for
 /// case-insensitive grammars `SELECT`/`select` stay one token). Anonymous tokens that
@@ -129,7 +145,7 @@ pub fn node_to_cst_with(node: tree_sitter::Node<'_>, source: &[u8], options: &Cs
             .collect(),
         tokens => (0..node.child_count())
             .filter_map(|i| node.child(i))
-            .filter(|child| child.is_named() || tokens.keeps(child.kind()))
+            .filter(|child| child.is_named() || tokens.keeps_in(node.kind(), child.kind()))
             .map(|child| node_to_cst_with(child, source, options))
             .collect(),
     };
@@ -492,6 +508,7 @@ pub fn literal_label_full(node: &CstNode) -> Option<String> {
 mod tests {
     use super::{
         convert_semantic, convert_semantic_with, cst_literal_kind, is_delimiter_token,
+        is_delimiter_token_in,
         literal_label, literal_label_full, node_to_cst, node_to_cst_with, AnonymousTokens,
         CstOptions,
     };
@@ -586,6 +603,43 @@ mod tests {
         for t in ["+", "-", ":=", "->", "async", "virtual", "-eq", "?.", "..", "**"] {
             assert!(!is_delimiter_token(t), "{t}");
         }
+    }
+
+    #[test]
+    fn slice_colons_keep_operand_position() {
+        // Issue #33: `:` is noise in most places but locates the operands of a slice.
+        let hashes: Vec<String> = ["x[1:]\n", "x[:1]\n", "x[1:2]\n"]
+            .iter()
+            .map(|src| identity(&python_cst_with(src, &SEMANTIC_TOKENS)))
+            .collect();
+        assert_ne!(hashes[0], hashes[1], "x[1:] vs x[:1]");
+        assert_ne!(hashes[0], hashes[2], "x[1:] vs x[1:2]");
+        assert_ne!(hashes[1], hashes[2], "x[:1] vs x[1:2]");
+        assert_ne!(
+            structural_hash(&python_cst_with("x[1:]\n", &SEMANTIC_TOKENS)),
+            structural_hash(&python_cst_with("x[:1]\n", &SEMANTIC_TOKENS))
+        );
+        let cst = python_cst_with("x[1:]\n", &SEMANTIC_TOKENS);
+        let colon = cst.walk().find(|n| n.node_type == ":").expect("slice colon kept");
+        assert!(!colon.named);
+        assert_eq!((colon.start_col, colon.end_col), (3, 4));
+        // Layout inside the slice stays hash-neutral.
+        assert_eq!(
+            identity(&python_cst_with("x[1:]\n", &SEMANTIC_TOKENS)),
+            identity(&python_cst_with("x[1 :]\n", &SEMANTIC_TOKENS))
+        );
+        // Colons that are structural noise elsewhere are still dropped.
+        for src in ["def f(a: int):\n    pass\n", "d = {1: 2}\n", "if x:\n    pass\n"] {
+            let cst = python_cst_with(src, &SEMANTIC_TOKENS);
+            assert!(!cst.walk().any(|n| n.node_type == ":"), "{src:?}");
+        }
+        assert!(!python_cst_with("f(a, b)\n", &SEMANTIC_TOKENS)
+            .walk()
+            .any(|n| n.node_type == ","));
+        assert!(is_delimiter_token(":"));
+        assert!(!is_delimiter_token_in("slice", ":"));
+        assert!(is_delimiter_token_in("dictionary", ":"));
+        assert!(is_delimiter_token_in("slice", ","));
     }
 
     #[test]
