@@ -31,8 +31,9 @@ pub enum ConfigKind {
     Null,
     Boolean(bool),
     /// The original numeric token, never a formatted or rounded `f64` value.
-    /// Supported JSON decimal spellings use one exact canonical label/hash;
-    /// source positions continue to anchor the original token.
+    /// The label is always this exact source spelling. Supported JSON decimal
+    /// spellings share one exact canonical structural hash, so `9`, `9.0` and
+    /// `0.9e1` are equal for identity while each displays as written.
     Number(String),
     /// Decoded runtime string value; quotes/escape spelling are not payload.
     String(String),
@@ -215,8 +216,15 @@ impl Projector<'_, '_> {
                 ("object", "", None)
             }
         };
-        let label = canonical_number_label.as_deref().unwrap_or(source_label);
-        Ok(build(id, kind, label, &value.position, children))
+        // Identity (structural hash) uses the exact canonical decimal so equal
+        // values in different spellings hash identically; the displayed label
+        // always stays the exact source spelling (`9` shows as `9`, never `9e0`).
+        let identity_label = canonical_number_label.as_deref().unwrap_or(source_label);
+        let mut node = build(id, kind, identity_label, &value.position, children);
+        if identity_label != source_label {
+            node.label = source_label.to_owned();
+        }
+        Ok(node)
     }
 }
 
@@ -226,7 +234,8 @@ impl Projector<'_, '_> {
 /// only when both the explicit and effective base-10 exponents are within
 /// ±1,000,000. Zero is canonical regardless of exponent when that exponent
 /// parses as i64. Unsupported or out-of-domain tokens keep their exact source
-/// spelling as their hash label.
+/// spelling as their hash input. The result feeds only the structural hash,
+/// never the displayed label.
 fn canonical_decimal(source: &str) -> Option<String> {
     let (negative, unsigned) = source
         .strip_prefix('-')
