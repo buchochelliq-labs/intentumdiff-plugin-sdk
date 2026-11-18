@@ -114,7 +114,8 @@ fn exact_numeric_atoms_never_round_through_f64() {
         )
         .unwrap();
         assert_ne!(a.structural_hash, b.structural_hash, "{left} vs {right}");
-        assert_ne!(a.children[0].label, b.children[0].label);
+        assert_eq!(a.children[0].label, left);
+        assert_eq!(b.children[0].label, right);
         assert_eq!(a.children[0].position.end_col as usize, left.len());
         assert_eq!(b.children[0].position.end_col as usize, right.len());
     }
@@ -143,7 +144,10 @@ fn equivalent_exact_decimal_spellings_share_semantics_and_keep_source_anchors() 
         )
         .unwrap();
         assert_eq!(a.structural_hash, b.structural_hash, "{left} vs {right}");
-        assert_eq!(a.children[0].label, b.children[0].label);
+        assert_eq!(a.children[0].structural_hash, b.children[0].structural_hash);
+        // Displayed as written: canonical forms are identity-only.
+        assert_eq!(a.children[0].label, left);
+        assert_eq!(b.children[0].label, right);
         assert_eq!(a.children[0].position.end_col as usize, left.len());
         assert_eq!(b.children[0].position.end_col as usize, right.len());
     }
@@ -179,6 +183,158 @@ fn decimal_proof_preserves_sign_precision_type_and_unknown_syntax() {
     let textual = value(ConfigKind::String("1".into()), "1");
     let text_node = configuration_node("id", "value", &textual.position, &textual, "1").unwrap();
     assert_ne!(numeric.structural_hash, text_node.structural_hash);
+}
+
+fn number_leaf(text: &str) -> SemanticNode {
+    configuration_node("id", "value", &number(text).position, &number(text), text)
+        .unwrap()
+        .children
+        .remove(0)
+}
+
+#[test]
+fn number_labels_are_displayed_exactly_as_written() {
+    // Supported decimal spellings, unsupported/opaque spellings (`1_000`,
+    // `0x10`, `+1`, `01`, `.5`, `1.`, `Infinity`) and out-of-domain exponents
+    // all keep the exact source token as the label; never `9e0`.
+    for text in [
+        "9",
+        "9.0",
+        "9.00",
+        "0.9e1",
+        "90e-1",
+        "9E0",
+        "9e+0",
+        "-9",
+        "-0",
+        "0",
+        "0.0",
+        "1e3",
+        "1000",
+        "1E3",
+        "1e+3",
+        "0.0100",
+        "1e-2",
+        "-12.50",
+        "1_000",
+        "0x10",
+        "+1",
+        "01",
+        ".5",
+        "1.",
+        "Infinity",
+        "1e1000001",
+        "18446744073709551617",
+    ] {
+        let leaf = number_leaf(text);
+        assert_eq!(leaf.node_type, "number", "{text}");
+        assert_eq!(leaf.label, text, "label must be the source spelling");
+        assert_eq!(leaf.position.end_col as usize, text.len());
+    }
+}
+
+#[test]
+fn number_hash_is_canonical_across_spellings_of_equal_value() {
+    for group in [
+        &["9", "9.0", "9.00", "0.9e1", "90e-1", "9E0", "9e+0", "9e-0"][..],
+        &["1000", "1e3", "1E3", "1e+3", "1.000e3", "10e2", "0.001e6"][..],
+        &["0", "-0", "0.0", "-0.000", "0e5", "-0e-9"][..],
+        &["-12.50", "-125e-1", "-1.25e1"][..],
+    ] {
+        let first = number_leaf(group[0]);
+        for text in &group[1..] {
+            let other = number_leaf(text);
+            assert_eq!(
+                first.structural_hash, other.structural_hash,
+                "{} vs {text}",
+                group[0]
+            );
+            assert_ne!(first.label, other.label);
+            let wrap = |t: &str| {
+                configuration_node("id", "value", &number(t).position, &number(t), t)
+                    .unwrap()
+                    .structural_hash
+            };
+            assert_eq!(
+                wrap(group[0]),
+                wrap(text),
+                "parent hash {} vs {text}",
+                group[0]
+            );
+        }
+    }
+}
+
+#[test]
+fn number_hash_changes_for_real_value_sign_precision_and_type_edits() {
+    let hash = |text: &str| number_leaf(text).structural_hash;
+    for (left, right) in [
+        // value
+        ("9", "10"),
+        ("9.0", "9.1"),
+        ("1e3", "1e4"),
+        ("1000", "1001"),
+        // sign
+        ("9", "-9"),
+        ("1e-2", "-1e-2"),
+        ("1e2", "1e-2"),
+        // precision beyond f64
+        ("9007199254740992", "9007199254740993"),
+        ("1.00000000000000001", "1.00000000000000002"),
+        ("0.1", "0.10000000000000001"),
+    ] {
+        assert_ne!(hash(left), hash(right), "{left} vs {right}");
+    }
+    // type: a number never shares identity with a string, boolean, null or
+    // opaque value of the same spelling.
+    let numeric =
+        configuration_node("id", "value", &number("9").position, &number("9"), "9").unwrap();
+    for kind in [
+        ConfigKind::String("9".into()),
+        ConfigKind::String("9e0".into()),
+        ConfigKind::Opaque("9".into()),
+        ConfigKind::Opaque("9e0".into()),
+    ] {
+        let v = value(kind, "9");
+        let other = configuration_node("id", "value", &v.position, &v, "9").unwrap();
+        assert_ne!(numeric.structural_hash, other.structural_hash);
+    }
+}
+
+#[test]
+fn number_identity_hash_is_unchanged_from_the_canonical_label_era() {
+    // Keeping the source label must not churn identities: the leaf hash is the
+    // builder's `number:<canonical>` payload, exactly as when the canonical
+    // form was also the label, and unsupported spellings hash their source.
+    let builder_hash = |label: &str| {
+        intentumdiff_plugin_sdk::tree::SemanticNodeBuilder::new(
+            "x",
+            "number",
+            label,
+            0,
+            0,
+            0,
+            0,
+            String::new(),
+        )
+        .build()
+        .structural_hash
+    };
+    for (text, identity) in [
+        ("9", "9e0"),
+        ("9.0", "9e0"),
+        ("1000", "1e3"),
+        ("-12.50", "-125e-1"),
+        ("-0.0", "0"),
+        ("1_000", "1_000"),
+        ("01", "01"),
+    ] {
+        assert_eq!(
+            number_leaf(text).structural_hash,
+            builder_hash(identity),
+            "{text}"
+        );
+    }
 }
 
 #[test]

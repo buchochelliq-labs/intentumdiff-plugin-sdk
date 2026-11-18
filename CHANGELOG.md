@@ -17,6 +17,11 @@
   `literal_label_full` drops the 120-char display cap. See PLUGIN_GUIDE "Identity".
   `OperatorsAndKeywords` keeps a `:` whose parent is a slice node (`x[1:]` vs `x[:1]`,
   #33) via the new `is_delimiter_token_in` / `AnonymousTokens::keeps_in`.
+- **Configuration numbers display as written** (#31 follow-up). A projected `number` node's
+  label is the exact source token (`9`, `9.0`, `1e3`, …), never a canonical form such as
+  `9e0`. The exact canonical decimal from #31 is used only for the structural hash, so equal
+  values in different spellings still hash identically and real value, sign, precision and
+  type edits still change it; hashes are byte-identical to #31's.
 - **Documented setup resolves** (#27): the SDK version is `0.0.3-beta.1` and the template,
   README, BUILDING and crate docs pin tag `v0.0.3-beta.1` (`v0.1.0` still names the
   pre-rebrand `intentdiff-plugin-sdk` package). The template is a real parser component
